@@ -1,0 +1,19 @@
+services:
+  backend:
+    image: ghcr.io/a-thanomsak/todo-app/backend:latest
+    ports:
+      - '8000:8000'
+    environment:
+      - DJANGO_SUPERUSER_USERNAME=admin
+      - DJANGO_SUPERUSER_PASSWORD=test1234
+      - DJANGO_SUPERUSER_EMAIL=admin@example.com
+    command: >
+      sh -c "python manage.py migrate --noinput &&
+             python manage.py ensure_user &&
+             python manage.py runserver 0.0.0.0:8000"
+  frontend:
+    image: ghcr.io/a-thanomsak/todo-app/frontend:latest
+    ports:
+      - '3000:3000'
+    depends_on:
+      - backend
