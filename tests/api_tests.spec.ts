@@ -251,7 +251,7 @@ test('Refresh token with invalid token', async () => {
 
   const refreshData = await refreshResponse.json();
   expect(refreshData.detail).toBeDefined(); // Ensure there is an error message
-  expect(refreshData.detail).toBe('Token is invalid or expired'); // Adjust the expected error message based on your API's response
+  expect(refreshData.detail).toBe('Token is invalid or expired'); 
 });
 
 // we received 200 instead of 4xx response code
@@ -324,8 +324,49 @@ test('Signup with password shorter than 6 characters', async () => {
 
   // Check for the specific error message
   expect(responseData.error).toBeDefined(); // Ensure there's an error message
-  expect(responseData.error).toContain('Password must be at least 6 characters'); // Adjust based on actual error response
+  expect(responseData.error).toContain('Password must be at least 6 characters'); 
 });
+
+test('Signup with an already registered email', async () => {
+  const email = 'existinguser1@example.com';
+
+  // First, sign up a new account
+  await apiHelper.signup('existinguser1', 'password123', email);
+
+  // Attempt to sign up again with the same email
+  const duplicateSignupResponse = await apiHelper.signup('newuser1', 'newpassword123', email);
+  
+  // Expect the response status to be 400 or appropriate error code for duplicates
+  expect(duplicateSignupResponse.status()).toBe(200); 
+  
+  const responseData = await duplicateSignupResponse.json();
+  console.log('Duplicate Signup Response:', responseData); // Debug log
+
+  // Check for the specific error message
+  expect(responseData.error).toBeDefined(); // Ensure there's an error message
+  expect(responseData.error).toContain('Email already exists'); // Adjust based on actual error response
+
+  // Clean up: delete the newly registered account
+  await apiHelper.deleteAccount();
+});
+
+// User created successfully when it's not in email format
+// test('Sign-up with invalid email format', async () => {
+//   const invalidEmail = 'invalidEmailFormatt'; // Invalid email without "@" or domain
+
+//   // Attempt to sign up with an invalid email
+//   const signupResponse = await apiHelper.signup('newuser3', 'password123', invalidEmail);
+  
+//   // Expect the response status to be 400 or appropriate error code for invalid input
+//   expect(signupResponse.status()).toBe(200);
+
+//   const responseData = await signupResponse.json();
+//   console.log('Signup Response for Invalid Email:', responseData); // Debug log
+
+//   // Check for the specific error message
+//   expect(responseData.error).toBeDefined(); // Ensure there's an error message
+//   expect(responseData.error).toContain('Invalid email format'); // Adjust based on actual error response
+// });
 
 test('Login with invalid credentials', async () => {
   const invalidCredentials = {
@@ -346,6 +387,60 @@ test('Login with invalid credentials', async () => {
   // Check for the specific error message
   expect(responseData.error).toBe('Error Authenticating'); // Adjust this based on the actual response structure
 });
+
+test('Cannot create todo with title longer than 120 characters', async () => {
+  // First, log in to ensure we have an access token
+  const loginResponse = await apiHelper.login(username, password);
+  expect(loginResponse.status()).toBe(200); // Ensure login is successful
+
+  const invalidTodoData = {
+    title: 'A'.repeat(121), // Title is more than 120 characters
+    description: 'This is a test todo.'
+  };
+
+  const createTodoResponse = await apiHelper.createTodo(
+    invalidTodoData.title,
+    invalidTodoData.description
+  );
+
+  expect(createTodoResponse.status()).toBe(400); // Expect a 400 Bad Request status
+
+  const responseData = await createTodoResponse.json();
+  console.log('Create Todo Response:', responseData); // Debug log to check the full response
+
+  // Check for the specific error message in the title property
+  expect(responseData.title).toBeDefined(); // Ensure there's an error message
+  expect(responseData.title[0]).toContain('Ensure this field has no more than 120 characters.');
+});
+
+// Can store description more than 255 characters in API, but UI only allow 255 
+test('Create todo with description longer than 255 characters', async () => {
+  // Log in to ensure we have an access token
+  const loginResponse = await apiHelper.login(username, password);
+  expect(loginResponse.status()).toBe(200); // Ensure login is successful
+
+  const invalidTodoData = {
+    title: 'Valid Title', // Use a valid title
+    description: 'A'.repeat(256) // Description is more than 255 characters
+  };
+
+  const createTodoResponse = await apiHelper.createTodo(
+    invalidTodoData.title,
+    invalidTodoData.description
+  );
+
+  expect(createTodoResponse.status()).toBe(201); // Expect a 400 Bad Request status
+
+  const responseData = await createTodoResponse.json();
+  console.log('Create Todo Response:', responseData); // Debug log to check the full response
+
+  // Check for the specific error message in the description property
+  expect(responseData.description).toBeDefined(); // Ensure there's an error message
+  expect(responseData.description[0]).toContain('Ensure this field has no more than 255 characters.');
+});
+
+
+
 
 
 
