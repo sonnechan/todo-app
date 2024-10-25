@@ -71,16 +71,20 @@ test('Create a new account, update profile, and delete it', async () => {
   const profileResponse = await apiHelper.getUserProfile();
   const profileData = await profileResponse.json();
 
-  // Log the profile data for debugging purposes
-  console.log('Profile Response:', JSON.stringify(profileData, null, 2));
+  // Log the profile data for detailed debugging
+  console.log('Full Profile Response:', JSON.stringify(profileData, null, 2));
 
-  // Step 4: Extract username with multiple possible paths and handle cases where it's missing
-  const username = profileData.username || profileData.data?.username || profileData.user?.username;
+  // Step 4: Try to extract username from all possible locations in the profile response
+  const username = profileData.username || 
+                   profileData.data?.username || 
+                   profileData.user?.username || 
+                   profileData.profile?.username;
 
   if (username) {
-    expect(username).toBe(signUpUsername);  // Verify if username matches the expected value
+    console.log('Extracted Username:', username);  // Log the found username for clarity
+    expect(username).toBe(signUpUsername);  // Verify that the username matches
   } else {
-    console.error("Profile Response Structure:", JSON.stringify(profileData, null, 2));  // Log the structure in detail
+    console.error("Profile Response Structure:", JSON.stringify(profileData, null, 2));  // Log the structure if username is missing
     throw new Error("Username is not found in profile response");
   }
 
@@ -96,23 +100,14 @@ test('Create a new account, update profile, and delete it', async () => {
   // Log the updated profile response for inspection
   console.log('Updated Profile Response Data:', JSON.stringify(updateProfileResponseBody, null, 2));
 
-  // Check if the update was successful
+  // Ensure the update was successful
   if (updateProfileResponse.status() !== 200) {
     throw new Error(`Profile update failed. Status: ${updateProfileResponse.status()}, Body: ${JSON.stringify(updateProfileResponseBody)}`);
   }
 
-  // Verify the updated fields match the expected values
-  if (updateProfileResponseBody.address) {
-    expect(updateProfileResponseBody.address).toBe(updateAddress);
-  } else {
-    console.error('Address not returned in update profile response:', updateProfileResponseBody);
-  }
-
-  if (updateProfileResponseBody.phone) {
-    expect(updateProfileResponseBody.phone).toBe(updatePhone);
-  } else {
-    console.error('Phone not returned in update profile response:', updateProfileResponseBody);
-  }
+  // Verify that the updated address and phone match the expected values
+  expect(updateProfileResponseBody.address).toBe(updateAddress);
+  expect(updateProfileResponseBody.phone).toBe(updatePhone);
 
   // Step 6: Delete the user account after the test
   const deleteResponse = await apiHelper.deleteAccount();
