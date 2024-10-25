@@ -62,7 +62,8 @@ test('Create a new account, update profile, and delete it', async () => {
 
   // Step 2: Log in with the new account
   if (!apiToken) {
-    await apiHelper.login(signUpUsername, signUpPassword);
+    const loginResponse = await apiHelper.login(signUpUsername, signUpPassword);
+    expect(loginResponse.status()).toBe(200);
     expect(apiHelper.getAccessToken()).not.toBe('');
   }
 
@@ -70,19 +71,16 @@ test('Create a new account, update profile, and delete it', async () => {
   const profileResponse = await apiHelper.getUserProfile();
   const profileData = await profileResponse.json();
 
-  // Log the entire profile response for debugging
-  console.log('Profile Response:', profileData);
+  // Log the profile data for debugging purposes
+  console.log('Profile Response:', JSON.stringify(profileData, null, 2));
 
-  // Step 4: Try to extract username from different possible locations in the response
+  // Step 4: Extract username with multiple possible paths and handle cases where it's missing
   const username = profileData.username || profileData.data?.username || profileData.user?.username;
 
-  // Ensure the profile contains the username
-  expect(profileResponse.status()).toBe(200);
-
   if (username) {
-    expect(username).toBe(signUpUsername);  // Check if username matches the expected value
+    expect(username).toBe(signUpUsername);  // Verify if username matches the expected value
   } else {
-    console.error("Profile Response Structure:", profileData);  // Log the entire structure to understand the issue
+    console.error("Profile Response Structure:", JSON.stringify(profileData, null, 2));  // Log the structure in detail
     throw new Error("Username is not found in profile response");
   }
 
@@ -95,10 +93,10 @@ test('Create a new account, update profile, and delete it', async () => {
   const updateProfileResponse = await apiHelper.updateUserProfile(updateData);
   const updateProfileResponseBody = await updateProfileResponse.json();
 
-  // Log the updated profile data for inspection
-  console.log('Updated Profile Response Data:', updateProfileResponseBody);
+  // Log the updated profile response for inspection
+  console.log('Updated Profile Response Data:', JSON.stringify(updateProfileResponseBody, null, 2));
 
-  // Check the API response status for updating the profile
+  // Check if the update was successful
   if (updateProfileResponse.status() !== 200) {
     throw new Error(`Profile update failed. Status: ${updateProfileResponse.status()}, Body: ${JSON.stringify(updateProfileResponseBody)}`);
   }
