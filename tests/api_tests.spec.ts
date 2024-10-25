@@ -1,4 +1,4 @@
-import { test, expect, request as baseRequest } from '@playwright/test';
+import { test, expect, request as baseRequest, APIResponse } from '@playwright/test';
 import { APIHelper } from '../src/helpers/api_utils';
 
 let apiHelper: APIHelper;
@@ -56,23 +56,34 @@ test('Get Todos for logged-in user', async () => {
 });
 
 test('Create a new account, update profile, and delete it', async () => {
+  // Step 1: Sign up
   const signupResponse = await apiHelper.signup(signUpUsername, signUpPassword, signUpEmail);
+  console.log('Signup Response:', await signupResponse.json());  // Log the signup response for debugging
   expect(signupResponse.status()).toBe(200);
 
   if (!apiToken) {
+    // Step 2: Log in with the new account
     await apiHelper.login(signUpUsername, signUpPassword);
     expect(apiHelper.getAccessToken()).not.toBe('');
   }
 
+  // Step 3: Get user profile
   const profileResponse = await apiHelper.getUserProfile();
-  expect(profileResponse.status()).toBe(200);
   const profileData = await profileResponse.json();
-  console.log('Profile Response:', profileData);
-  expect(profileData.username).toBe(signUpUsername);
+  console.log('Profile Response:', profileData);  // Log the profile data for debugging
 
+  // Ensure the profile contains the username
+  expect(profileResponse.status()).toBe(200);
+  expect(profileData.username).toBe(signUpUsername);  // This is where the issue is happening
+
+  // Step 4: Optionally update user profile (if needed)
+  // You can skip this step if not necessary.
+
+  // Step 5: Delete the account
   const deleteResponse = await apiHelper.deleteAccount();
   expect(deleteResponse.status()).toBe(200);
 });
+
 
 test('Create a new todo after login', async () => {
   if (!apiToken) {
@@ -161,24 +172,52 @@ test('Partially update an existing todo after login', async () => {
 
 test('Refresh token after login', async () => {
   if (!apiToken) {
-    const loginResponse = await apiHelper.login(username, password);
-    
-    // Explicitly assert the response to be of type APIResponse
-    const loginData = await (loginResponse as any).json();  // Type assertion to avoid the error
-    const refreshToken = loginData.data.refresh_token;
+    // Log in to get initial tokens
+    const loginResponse = await apiHelper.login(username, password) as APIResponse;  // Ensure it's typed as APIResponse
 
-    const refreshResponse = await apiHelper.refreshToken(refreshToken);
-    
-    // Same here for the refresh response
-    const refreshData = await (refreshResponse as any).json(); // Type assertion
+    // Check if loginResponse is valid and log it
+    console.log("Login Response:", loginResponse);
 
-    expect(refreshResponse.status()).toBe(200);  // Ensure the refresh was successful
+    // Check if loginResponse is an APIResponse
+    if (!loginResponse || typeof loginResponse.status !== 'function') {
+      throw new Error("Login response is not a valid API response. Received: " + JSON.stringify(loginResponse));
+    }
+
+    // Ensure the status is 200 before parsing the response
+    expect(loginResponse.status()).toBe(200);
+
+    // Now, safely parse the response
+    const loginData = await loginResponse.json();  
+    console.log("Login Response Data:", loginData);  // Log for debugging
+    
+    const refreshToken = loginData.data?.refresh_token;
+    if (!refreshToken) {
+      throw new Error("Refresh token not found in login response.");
+    }
+
+    // Attempt to refresh the token
+    const refreshResponse = await apiHelper.refreshToken(refreshToken) as APIResponse;  // Ensure it's typed as APIResponse
+
+    // Log and ensure refreshResponse is valid
+    console.log("Refresh Response:", refreshResponse);
+
+    if (!refreshResponse || typeof refreshResponse.status !== 'function') {
+      throw new Error("Refresh response is not valid. Received: " + JSON.stringify(refreshResponse));
+    }
+
+    // Safely check the refresh response
+    expect(refreshResponse.status()).toBe(200);
+    
+    const refreshData = await refreshResponse.json();  // json() method should work correctly now
+    console.log("Refresh Response Data:", refreshData);  // Log for debugging
+
     expect(refreshData.access).toBeDefined();
-    expect(refreshData.access).not.toBe(loginData.data.access_token);  // Ensure the tokens are different
+    expect(refreshData.access).not.toBe(loginData.data.access_token);  // Ensure the new token is different
   } else {
     console.log('Token refresh skipped because API_TOKEN is provided');
   }
 });
+
 
 test('Signup with invalid data', async () => {
   const invalidSignupData = {
@@ -206,8 +245,8 @@ test('Cannot create todo with title longer than 120 characters', async () => {
   }
 
   const invalidTodoData = {
-    title: 'A'.repeat(121),
-    description: 'This is a test todo.'
+    title: 'A'.repeat(121),  // Title exceeds the 120-character limit
+    description: 'This is a test todo with a long title.'
   };
 
   const createTodoResponse = await apiHelper.createTodo(
@@ -215,9 +254,14 @@ test('Cannot create todo with title longer than 120 characters', async () => {
     invalidTodoData.description
   );
 
-  expect(createTodoResponse.status()).toBe(401);  // Expect failure due to invalid data
+  // Expect 400 Bad Request for invalid data, as title is too long
+  expect(createTodoResponse.status()).toBe(400);  // Adjust to expect 400 instead of 401
+
   const responseData = await createTodoResponse.json();
   console.log('Create Todo Response:', responseData);
-  expect(responseData.title).toBeDefined();
+
+  // Validate that the error message is about the title being too long
+  expect(responseData.title).toBeDefined();  // Check that there's an error message for 'title'
   expect(responseData.title[0]).toContain('Ensure this field has no more than 120 characters.');
 });
+

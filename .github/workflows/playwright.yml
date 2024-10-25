@@ -85,16 +85,28 @@ jobs:
     - name: Set API Token as environment variable
       run: echo "API_TOKEN=${{ steps.get_api_token.outputs.api_token }}" >> $GITHUB_ENV
 
-    # Step 12: Run Playwright tests with Chromium only and generate a report
-    - name: Run Playwright tests with Chromium only
-      run: pnpm exec playwright test --reporter=html --project=chromium
+    # Step 12: Run API Tests (api_tests.spec.ts)
+    - name: Run API Tests
+      run: pnpm exec playwright test tests/api_tests.spec.ts --project=chromium --reporter=html
       env:
         API_TOKEN: ${{ env.API_TOKEN }}
 
-    # Step 13: Upload Playwright HTML report as an artifact
+    # Step 13: Upload API Test Report
     - uses: actions/upload-artifact@v4
       if: ${{ !cancelled() }}
       with:
-        name: playwright-html-report
+        name: api-test-report
+        path: playwright-report/
+        retention-days: 30
+
+    # Step 14: Run UI Tests (e2e_spec.ts)
+    - name: Run UI Tests
+      run: pnpm exec playwright test tests/e2e_spec.ts --project=chromium --reporter=html
+
+    # Step 15: Upload UI Test Report
+    - uses: actions/upload-artifact@v4
+      if: ${{ !cancelled() }}
+      with:
+        name: ui-test-report
         path: playwright-report/
         retention-days: 30
