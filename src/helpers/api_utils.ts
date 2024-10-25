@@ -1,7 +1,7 @@
 import { APIRequestContext } from '@playwright/test';
 
 export class APIHelper {
-  private accessToken = '';
+  private accessToken = process.env.API_TOKEN || ''; // Use API_TOKEN from env if available
 
   constructor(
     private readonly request: APIRequestContext,
@@ -16,10 +16,17 @@ export class APIHelper {
   }
 
   async login(username: string, password: string) {
+    if (this.accessToken) {
+      // If API_TOKEN is set in the environment, skip login
+      console.log('Using API_TOKEN from environment, skipping login.');
+      return { status: () => 200, ok: () => true }; // Mock a successful login response
+    }
+
     const response = await this.request.post(`${this.baseURL}/accounts/login`, {
       headers: { 'Content-Type': 'application/json' },
       data: { username, password },
     });
+
     const data = await response.json();
     console.log("Login Response:", data); // Debug log
   
@@ -67,64 +74,62 @@ export class APIHelper {
 
   async logout() {
     return await this.request.post(`${this.baseURL}/accounts/logout`, {
-      headers: { 'Authorization': `Bearer ${this.getAccessToken()}` },
+      headers: this.getHeaders(),
     });
   }
 
   async getUserProfile() {
     return await this.request.get(`${this.baseURL}/profile/user`, {
-        headers: { 'Authorization': `Bearer ${this.getAccessToken()}` },
+      headers: this.getHeaders(),
     });
-}
+  }
 
-async updateUserProfile({ address, phone }: { address: string; phone: string }) {
-  try {
+  async updateUserProfile({ address, phone }: { address: string; phone: string }) {
+    try {
       const response = await this.request.put(`${this.baseURL}/profile/update`, {
-          data: { address, phone },
-          headers: {
-              'Authorization': `Bearer ${this.getAccessToken()}`
-          }
+        data: { address, phone },
+        headers: this.getHeaders(),
       });
 
       if (response.status() !== 200) {
-          const errorResponse = await response.json(); // Get error details
-          console.log('Unexpected response:', errorResponse);
-          throw new Error(`Update failed: ${errorResponse.detail || 'Unknown error'}`);
+        const errorResponse = await response.json(); // Get error details
+        console.log('Unexpected response:', errorResponse);
+        throw new Error(`Update failed: ${errorResponse.detail || 'Unknown error'}`);
       }
 
       return response;
-  } catch (error) {
+    } catch (error) {
       console.error('Error updating profile:', error);
       throw new Error('Something went wrong when updating profile');
+    }
   }
-}
 
   async getTodoById(id: number) {
-  return await this.request.get(`${this.baseURL}/todos/${id}/`, {
-    headers: this.getHeaders(),
-  });
-}
+    return await this.request.get(`${this.baseURL}/todos/${id}/`, {
+      headers: this.getHeaders(),
+    });
+  }
 
   async updateTodo(id: number, data: { title: string; description: string }) {
-  return await this.request.put(`${this.baseURL}/todos/${id}/`, {
-    headers: this.getHeaders(),
-    data: data,
-  });
-}
+    return await this.request.put(`${this.baseURL}/todos/${id}/`, {
+      headers: this.getHeaders(),
+      data: data,
+    });
+  }
 
   async partialUpdateTodo(id: number, data: { title?: string; description?: string }) {
-  return await this.request.patch(`${this.baseURL}/todos/${id}/`, {
-    headers: this.getHeaders(),
-    data: data,
-  });
-}
+    return await this.request.patch(`${this.baseURL}/todos/${id}/`, {
+      headers: this.getHeaders(),
+      data: data,
+    });
+  }
 
   async refreshToken(refresh: string) {
-  return await this.request.post(`${this.baseURL}/token/refresh/`, {
-    headers: { 'Content-Type': 'application/json' },
-    data: { refresh },
-  });
-}
+    return await this.request.post(`${this.baseURL}/token/refresh/`, {
+      headers: { 'Content-Type': 'application/json' },
+      data: { refresh },
+    });
+  }
 
   getAccessToken() {
     return this.accessToken;

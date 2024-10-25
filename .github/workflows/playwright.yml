@@ -40,9 +40,10 @@ jobs:
         docker-compose -f compose.yml pull
         docker-compose -f compose.yml up -d
       env:
-        DJANGO_SUPERUSER_USERNAME: admin
-        DJANGO_SUPERUSER_PASSWORD: test1234
-        DJANGO_SUPERUSER_EMAIL: admin@example.com
+        DJANGO_SUPERUSER_USERNAME: ${{ secrets.DJANGO_SUPERUSER_USERNAME }}
+        DJANGO_SUPERUSER_PASSWORD: ${{ secrets.DJANGO_SUPERUSER_PASSWORD }}
+        DJANGO_SUPERUSER_EMAIL: ${{ secrets.DJANGO_SUPERUSER_EMAIL }}
+        API_TOKEN: ${{ secrets.API_TOKEN }}
 
     # Set up Node and Install Dependencies
     - uses: actions/setup-node@v4
@@ -66,6 +67,8 @@ jobs:
     # Run Playwright tests
     - name: Run Playwright tests
       run: pnpm exec playwright test
+      env:
+        API_TOKEN: ${{ secrets.API_TOKEN }}
 
     # Upload Playwright report as artifact
     - uses: actions/upload-artifact@v4
