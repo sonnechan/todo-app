@@ -1,4 +1,5 @@
 name: Playwright Tests
+
 on:
   push:
     branches: [ main, master ]
@@ -9,13 +10,16 @@ jobs:
   test:
     timeout-minutes: 60
     runs-on: ubuntu-latest
+
     steps:
+    # Step 1: Check out the code
     - uses: actions/checkout@v4
 
-    # Set up Docker
+    # Step 2: Set up Docker
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v2
 
+    # Step 3: Log in to GitHub Container Registry
     - name: Log in to GitHub Container Registry
       uses: docker/login-action@v2
       with:
@@ -23,18 +27,18 @@ jobs:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
 
-    # Install Docker Compose
+    # Step 4: Install Docker Compose
     - name: Install Docker Compose
       run: |
         curl -L "https://github.com/docker/compose/releases/download/$(curl -s https://api.github.com/repos/docker/compose/releases/latest | jq -r .tag_name)/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
         chmod +x /usr/local/bin/docker-compose
         docker-compose version
 
-    # List directory contents to verify docker-compose.yml location
+    # Step 5: List directory contents to verify docker-compose.yml location
     - name: List directory contents
       run: ls -R
 
-    # Pull and Run Docker Compose services
+    # Step 6: Pull and Run Docker Compose services
     - name: Pull and Run Docker Compose services
       run: |
         docker-compose -f compose.yml pull
@@ -43,20 +47,8 @@ jobs:
         DJANGO_SUPERUSER_USERNAME: ${{ secrets.DJANGO_SUPERUSER_USERNAME }}
         DJANGO_SUPERUSER_PASSWORD: ${{ secrets.DJANGO_SUPERUSER_PASSWORD }}
         DJANGO_SUPERUSER_EMAIL: ${{ secrets.DJANGO_SUPERUSER_EMAIL }}
-        API_TOKEN: ${{ secrets.API_TOKEN }}
 
-    # Set up Node and Install Dependencies
-    - uses: actions/setup-node@v4
-      with:
-        node-version: lts/*
-    - name: Install dependencies
-      run: npm install -g pnpm && pnpm install
-
-    # Install Playwright Browsers
-    - name: Install Playwright Browsers
-      run: pnpm exec playwright install --with-deps
-
-    # Wait for services to be ready
+    # Step 7: Wait for services to be ready
     - name: Wait for services to be ready
       run: |
         until curl -s http://localhost:8000/ && curl -s http://localhost:3000/; do
@@ -64,13 +56,42 @@ jobs:
           sleep 5
         done
 
-    # Run Playwright tests
+    # Step 8: Set up Node and Install Dependencies
+    - uses: actions/setup-node@v4
+      with:
+        node-version: lts/*
+    - name: Install dependencies
+      run: npm install -g pnpm && pnpm install
+
+    # Step 9: Install Playwright Browsers
+    - name: Install Playwright Browsers
+      run: pnpm exec playwright install --with-deps
+
+    # Step 10: Dynamically retrieve API Token (login)
+    - name: Retrieve API Token
+      id: get_api_token
+      run: |
+        API_LOGIN_RESPONSE=$(curl -s -X POST "http://localhost:8000/api/v1/accounts/login" \
+          -H "Content-Type: application/json" \
+          -d '{"username": "${{ secrets.DJANGO_SUPERUSER_USERNAME }}", "password": "${{ secrets.DJANGO_SUPERUSER_PASSWORD }}"}')
+
+        # Parse the response to extract the token (assuming it's in 'access_token' field)
+        API_TOKEN=$(echo $API_LOGIN_RESPONSE | jq -r '.data.access_token')
+
+        # Set the token as an output of this step
+        echo "::set-output name=api_token::$API_TOKEN"
+
+    # Step 11: Set the dynamically generated token as an environment variable for tests
+    - name: Set API Token as environment variable
+      run: echo "API_TOKEN=${{ steps.get_api_token.outputs.api_token }}" >> $GITHUB_ENV
+
+    # Step 12: Run Playwright tests with the dynamically generated token
     - name: Run Playwright tests
       run: pnpm exec playwright test
       env:
-        API_TOKEN: ${{ secrets.API_TOKEN }}
+        API_TOKEN: ${{ env.API_TOKEN }}
 
-    # Upload Playwright report as artifact
+    # Step 13: Upload Playwright report as an artifact
     - uses: actions/upload-artifact@v4
       if: ${{ !cancelled() }}
       with:
