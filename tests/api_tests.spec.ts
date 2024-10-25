@@ -102,24 +102,37 @@ test('Create a new account, update profile, and delete it', async () => {
 
 
 test('Create a new todo after login', async () => {
-  if (!apiToken) {
-    await apiHelper.login(username, password);
+  // Attempt to log in if the token is missing or invalid
+  if (!apiHelper.getAccessToken()) {
+    const loginResponse = await apiHelper.login(username, password);
+    expect(loginResponse.status()).toBe(200);
   }
 
+  // Log the access token for debugging
+  const token = apiHelper.getAccessToken();
+  console.log('Access Token:', token);
+
+  // Attempt to create a new todo
   const createTodoResponse = await apiHelper.createTodo(todoTitle, todoDescription);
+
+  // Check if the response is 201 Created
   expect(createTodoResponse.status()).toBe(201);
+  
   const todoData = await createTodoResponse.json();
   console.log('Created Todo:', todoData);
 
+  // Fetch todos to verify the new todo was created
   const getTodoResponse = await apiHelper.getTodos();
   expect(getTodoResponse.status()).toBe(200);
 
   const todos = await getTodoResponse.json();
   const verifiedTodo = todos.find(todo => todo.id === todoData.id);
-  expect(verifiedTodo).not.toBeUndefined();
-  expect(verifiedTodo.title).toBe(todoTitle);
-  expect(verifiedTodo.description).toBe(todoDescription);
+  
+  expect(verifiedTodo).not.toBeUndefined(); // Ensure the todo exists
+  expect(verifiedTodo.title).toBe(todoTitle); // Verify title matches
+  expect(verifiedTodo.description).toBe(todoDescription); // Verify description matches
 });
+
 
 test('Create, verify, and delete a new todo', async () => {
   if (!apiToken) {

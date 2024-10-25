@@ -57,3 +57,16 @@ Based on these feature files, complete the following tasks:
 - **30%:** Proper implementation of step definitions and their accuracy in automating the scenarios.
 - **15%:** Correct execution and reporting of test results.
 - **5%:** Successful CI integration.
+
+### How to run test
+
+Install playwright
+```sh
+pnpm create playwright
+```
+
+Run playwright UI
+```sh
+pnpm exec playwright test --ui
+```
+
