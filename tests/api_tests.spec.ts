@@ -64,19 +64,21 @@ test('Create a new account, update profile, and delete it', async () => {
   await apiHelper.login(signUpUsername, signUpPassword);
   expect(apiHelper.getAccessToken()).not.toBe('');
 
-  // Step 3: Get the user's profile and verify
+  // Step 3: Get the user's profile
   const profileResponse = await apiHelper.getUserProfile();
   const profileData = await profileResponse.json();
-  console.log('Profile Response Structure:', JSON.stringify(profileData, null, 2));
 
-  // Attempt to retrieve the username from possible locations within the profile response
+  // Log the full profile response in the pipeline
+  console.log('Full Profile Response:', JSON.stringify(profileData, null, 2));
+
+  // Attempt to retrieve the username from profileData
   const retrievedUsername = profileData.username || profileData.profile?.username;
-  
+
+  // Check for the presence of username in profile response
   if (retrievedUsername) {
     expect(retrievedUsername).toBe(signUpUsername);
   } else {
-    // Log the complete profile data if username retrieval fails for troubleshooting
-    console.error("Username not found in profile response:", JSON.stringify(profileData, null, 2));
+    console.error("Username not found in profile response. Full response data:", JSON.stringify(profileData, null, 2));
     throw new Error("Username is not found in profile response");
   }
 
