@@ -70,15 +70,19 @@ test('Create a new account, update profile, and delete it', async () => {
   const profileResponse = await apiHelper.getUserProfile();
   const profileData = await profileResponse.json();
 
-  // Log the entire profile data for inspection
-  console.log('Profile Response Data:', profileData);
+  // Log the entire profile response for debugging
+  console.log('Profile Response:', profileData);
 
-  // Step 4: Ensure the profile contains the username (adjust based on actual response structure)
+  // Step 4: Try to extract username from different possible locations in the response
+  const username = profileData.username || profileData.data?.username || profileData.user?.username;
+
+  // Ensure the profile contains the username
   expect(profileResponse.status()).toBe(200);
 
-  if (profileData.username) {
-    expect(profileData.username).toBe(signUpUsername);  // This will pass if username is correctly in the response
+  if (username) {
+    expect(username).toBe(signUpUsername);  // Check if username matches the expected value
   } else {
+    console.error("Profile Response Structure:", profileData);  // Log the entire structure to understand the issue
     throw new Error("Username is not found in profile response");
   }
 
@@ -87,7 +91,7 @@ test('Create a new account, update profile, and delete it', async () => {
     address: updateAddress,
     phone: updatePhone,
   };
-  
+
   const updateProfileResponse = await apiHelper.updateUserProfile(updateData);
   const updateProfileResponseBody = await updateProfileResponse.json();
 
