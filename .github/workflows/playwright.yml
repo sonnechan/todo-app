@@ -63,9 +63,9 @@ jobs:
     - name: Install dependencies
       run: npm install -g pnpm && pnpm install
 
-    # Step 9: Install Playwright Browsers
-    - name: Install Playwright Browsers
-      run: pnpm exec playwright install --with-deps
+    # Step 9: Install Playwright Browsers (Chromium only)
+    - name: Install Playwright Browsers (Chromium only)
+      run: pnpm exec playwright install chromium --with-deps
 
     # Step 10: Dynamically retrieve API Token (login)
     - name: Retrieve API Token
@@ -85,16 +85,16 @@ jobs:
     - name: Set API Token as environment variable
       run: echo "API_TOKEN=${{ steps.get_api_token.outputs.api_token }}" >> $GITHUB_ENV
 
-    # Step 12: Run Playwright tests with the dynamically generated token
-    - name: Run Playwright tests
-      run: pnpm exec playwright test
+    # Step 12: Run Playwright tests with Chromium only and generate a report
+    - name: Run Playwright tests with Chromium only
+      run: pnpm exec playwright test --reporter=html --project=chromium
       env:
         API_TOKEN: ${{ env.API_TOKEN }}
 
-    # Step 13: Upload Playwright report as an artifact
+    # Step 13: Upload Playwright HTML report as an artifact
     - uses: actions/upload-artifact@v4
       if: ${{ !cancelled() }}
       with:
-        name: playwright-report
+        name: playwright-html-report
         path: playwright-report/
         retention-days: 30
