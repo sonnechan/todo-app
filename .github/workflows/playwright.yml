@@ -30,6 +30,10 @@ jobs:
         chmod +x /usr/local/bin/docker-compose
         docker-compose version
 
+    # List directory contents to verify docker-compose.yml location
+    - name: List directory contents
+      run: ls -R
+
     # Pull and Run Docker Compose services
     - name: Pull and Run Docker Compose services
       run: |
