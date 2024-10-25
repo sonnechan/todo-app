@@ -11,6 +11,20 @@ import { defineConfig, devices } from '@playwright/test';
 /**
  * See https://playwright.dev/docs/test-configuration.
  */
+
+interface EnvironmentConfig {
+  todoAPI: string;
+  authAPI: string;
+}
+
+// Environment configurations
+const environments: Record<string, EnvironmentConfig> = {
+  local: {
+    todoAPI: 'http://localhost:3000',
+    authAPI: 'http://localhost:8000/api/v1'
+  },
+};
+
 export default defineConfig({
   testDir: './tests',
   /* Run tests in files in parallel */

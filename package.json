@@ -3,7 +3,12 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
-  "scripts": {},
+  "scripts": {
+    "test": "playwright test",
+    "test:staging": "TEST_ENV=staging playwright test",
+    "test:prod": "TEST_ENV=production playwright test",
+    "build": "tsc"
+  },
   "keywords": [],
   "author": "",
   "license": "ISC",
