@@ -88,21 +88,24 @@ export class APIHelper {
     try {
       const response = await this.request.put(`${this.baseURL}/profile/update`, {
         data: { address, phone },
-        headers: this.getHeaders(),
+        headers: {
+          'Authorization': `Bearer ${this.getAccessToken()}`,
+        },
       });
-
+  
       if (response.status() !== 200) {
-        const errorResponse = await response.json(); // Get error details
+        const errorResponse = await response.json(); // Log error details if status is not 200
         console.log('Unexpected response:', errorResponse);
         throw new Error(`Update failed: ${errorResponse.detail || 'Unknown error'}`);
       }
-
+  
       return response;
     } catch (error) {
       console.error('Error updating profile:', error);
       throw new Error('Something went wrong when updating profile');
     }
   }
+  
 
   async getTodoById(id: number) {
     return await this.request.get(`${this.baseURL}/todos/${id}/`, {
