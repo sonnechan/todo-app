@@ -37,8 +37,8 @@ jobs:
     # Pull and Run Docker Compose services
     - name: Pull and Run Docker Compose services
       run: |
-        docker-compose -f docker-compose.yml pull
-        docker-compose -f docker-compose.yml up -d
+        docker-compose -f compose.yml pull
+        docker-compose -f compose.yml up -d
       env:
         DJANGO_SUPERUSER_USERNAME: admin
         DJANGO_SUPERUSER_PASSWORD: test1234
